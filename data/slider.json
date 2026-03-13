@@ -1,0 +1,8 @@
+[
+  { "id": "1", "src": "/images/general/corporate-photography.webp", "category": "Corporate Photography" },
+  { "id": "2", "src": "/images/general/wedding-photography.webp", "category": "Wedding Photography" },
+  { "id": "3", "src": "/images/general/birthday-photography.webp", "category": "Birthday Photography" },
+  { "id": "4", "src": "/images/general/pre-wedding-photography.webp", "category": "Pre-Wedding Photography" },
+  { "id": "5", "src": "/images/general/family-photography.webp", "category": "Family Photography" },
+  { "id": "6", "src": "/images/general/matternity-photography.webp", "category": "Maternity Photography" }
+]

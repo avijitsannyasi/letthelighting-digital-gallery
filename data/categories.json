@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1",
+    "name": "Corporate Photography",
+    "slug": "corporate-photography",
+    "password": "corporate2024",
+    "description": "Professional corporate photography capturing the essence of your brand, team, and business environment.",
+    "bannerImage": "/images/banners/1773409489473-46.webp"
+  },
+  {
+    "id": "2",
+    "name": "Event Photography",
+    "slug": "event-photography",
+    "password": "event2024",
+    "description": "Stunning event photography that preserves the energy, emotions, and memorable moments of your special occasions.",
+    "bannerImage": "/images/general/wedding-photography.webp"
+  },
+  {
+    "id": "3",
+    "name": "Birthday Photography",
+    "slug": "birthday-photography",
+    "password": "birthday2024",
+    "description": "Joyful birthday photography that captures the laughter, celebrations, and cherished moments of your special day.",
+    "bannerImage": "/images/general/birthday-photography.webp"
+  }
+]
