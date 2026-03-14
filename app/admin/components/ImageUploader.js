@@ -5,7 +5,7 @@ import { HiOutlineCloudUpload } from "react-icons/hi";
 
 const MAX_UPLOAD_SIZE = 4 * 1024 * 1024; // 4MB (Vercel Hobby limit)
 
-function compressImage(file, maxSizeMB = 3.8) {
+function compressImage(file, maxSizeMB = 3.8, minSizeMB = 1.2) {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -16,8 +16,8 @@ function compressImage(file, maxSizeMB = 3.8) {
       const canvas = document.createElement("canvas");
       let { width, height } = img;
 
-      // Scale down if image is very large
-      const maxDimension = 3000;
+      // Only scale down if image is extremely large
+      const maxDimension = 4500;
       if (width > maxDimension || height > maxDimension) {
         const ratio = Math.min(maxDimension / width, maxDimension / height);
         width = Math.round(width * ratio);
@@ -30,23 +30,23 @@ function compressImage(file, maxSizeMB = 3.8) {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Try different quality levels to get under maxSizeMB
       const maxBytes = maxSizeMB * 1024 * 1024;
-      let quality = 0.85;
-      let blob;
+      const minBytes = minSizeMB * 1024 * 1024;
+      let quality = 0.92;
 
       const tryCompress = () => {
         canvas.toBlob(
           (result) => {
-            if (result.size > maxBytes && quality > 0.3) {
-              quality -= 0.1;
-              tryCompress();
-            } else {
+            // Stop if under max OR if we'd go below minimum quality threshold
+            if (result.size <= maxBytes || quality <= 0.6 || result.size <= minBytes) {
               const compressed = new File([result], file.name, {
                 type: "image/jpeg",
                 lastModified: file.lastModified,
               });
               resolve(compressed);
+            } else {
+              quality -= 0.05;
+              tryCompress();
             }
           },
           "image/jpeg",

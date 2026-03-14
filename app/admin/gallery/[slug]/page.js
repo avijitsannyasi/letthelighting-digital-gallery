@@ -80,7 +80,7 @@ export default function GalleryManagePage() {
         URL.revokeObjectURL(url);
         const canvas = document.createElement("canvas");
         let { width, height } = img;
-        const maxDim = 3000;
+        const maxDim = 4500;
         if (width > maxDim || height > maxDim) {
           const ratio = Math.min(maxDim / width, maxDim / height);
           width = Math.round(width * ratio);
@@ -90,11 +90,13 @@ export default function GalleryManagePage() {
         canvas.height = height;
         canvas.getContext("2d").drawImage(img, 0, 0, width, height);
         const maxBytes = 3.8 * 1024 * 1024;
-        let quality = 0.85;
+        const minBytes = 1.2 * 1024 * 1024;
+        let quality = 0.92;
         const tryCompress = () => {
           canvas.toBlob((blob) => {
-            if (blob.size > maxBytes && quality > 0.3) { quality -= 0.1; tryCompress(); }
-            else resolve(new File([blob], file.name, { type: "image/jpeg" }));
+            if (blob.size <= maxBytes || quality <= 0.6 || blob.size <= minBytes) {
+              resolve(new File([blob], file.name, { type: "image/jpeg" }));
+            } else { quality -= 0.05; tryCompress(); }
           }, "image/jpeg", quality);
         };
         tryCompress();
