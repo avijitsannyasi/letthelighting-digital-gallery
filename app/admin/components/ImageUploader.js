@@ -16,6 +16,12 @@ export default function ImageUploader({ folder = "general", onUpload }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ folder }),
     });
+
+    if (!sigRes.ok) {
+      const errData = await sigRes.json().catch(() => ({}));
+      throw new Error(errData.error || `Server error ${sigRes.status}`);
+    }
+
     const { signature, timestamp, folder: cloudFolder, apiKey, cloudName } = await sigRes.json();
 
     if (!signature) throw new Error("Failed to get upload signature");
@@ -67,7 +73,7 @@ export default function ImageUploader({ folder = "general", onUpload }) {
           onUpload(data);
         }
       } catch (err) {
-        alert(`Failed to upload "${file.name}": ${err.message}`);
+        alert(`Upload failed for "${file.name}": ${err.message}`);
       }
     }
 
