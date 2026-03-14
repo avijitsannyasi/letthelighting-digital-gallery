@@ -1,16 +1,25 @@
 import { v2 as cloudinary } from "cloudinary";
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+let configured = false;
 
-export default cloudinary;
+function getCloudinary() {
+  if (!configured) {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+    configured = true;
+  }
+  return cloudinary;
+}
+
+export default getCloudinary;
 
 export async function uploadImage(buffer, folder = "general") {
+  const cld = getCloudinary();
   return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
+    const stream = cld.uploader.upload_stream(
       {
         folder: `photography-gallery/${folder}`,
         resource_type: "image",
@@ -27,5 +36,6 @@ export async function uploadImage(buffer, folder = "general") {
 }
 
 export async function deleteImage(publicId) {
-  return cloudinary.uploader.destroy(publicId);
+  const cld = getCloudinary();
+  return cld.uploader.destroy(publicId);
 }
