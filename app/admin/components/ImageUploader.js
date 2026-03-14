@@ -8,11 +8,18 @@ export default function ImageUploader({ folder = "general", onUpload }) {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef(null);
 
+  const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
   const handleFiles = async (files) => {
     if (!files?.length) return;
     setUploading(true);
 
     for (const file of files) {
+      if (file.size > MAX_SIZE) {
+        alert(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 10MB.`);
+        continue;
+      }
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("folder", folder);
