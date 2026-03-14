@@ -3,35 +3,104 @@
 import { useState, useRef } from "react";
 import { HiOutlineCloudUpload } from "react-icons/hi";
 
+const MAX_UPLOAD_SIZE = 4 * 1024 * 1024; // 4MB (Vercel Hobby limit)
+
+function compressImage(file, maxSizeMB = 3.8) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+
+      // Scale down if image is very large
+      const maxDimension = 3000;
+      if (width > maxDimension || height > maxDimension) {
+        const ratio = Math.min(maxDimension / width, maxDimension / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Try different quality levels to get under maxSizeMB
+      const maxBytes = maxSizeMB * 1024 * 1024;
+      let quality = 0.85;
+      let blob;
+
+      const tryCompress = () => {
+        canvas.toBlob(
+          (result) => {
+            if (result.size > maxBytes && quality > 0.3) {
+              quality -= 0.1;
+              tryCompress();
+            } else {
+              const compressed = new File([result], file.name, {
+                type: "image/jpeg",
+                lastModified: file.lastModified,
+              });
+              resolve(compressed);
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+
+      tryCompress();
+    };
+
+    img.src = url;
+  });
+}
+
 export default function ImageUploader({ folder = "general", onUpload }) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [status, setStatus] = useState("");
   const inputRef = useRef(null);
-
-  const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
   const handleFiles = async (files) => {
     if (!files?.length) return;
     setUploading(true);
 
-    for (const file of files) {
-      if (file.size > MAX_SIZE) {
-        alert(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 10MB.`);
-        continue;
+    for (let i = 0; i < files.length; i++) {
+      let file = files[i];
+      setStatus(`Processing ${i + 1}/${files.length}...`);
+
+      // Compress if over 4MB
+      if (file.size > MAX_UPLOAD_SIZE) {
+        setStatus(`Compressing ${file.name}...`);
+        file = await compressImage(file);
       }
 
+      setStatus(`Uploading ${i + 1}/${files.length}...`);
       const formData = new FormData();
       formData.append("file", file);
       formData.append("folder", folder);
 
-      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
-      const data = await res.json();
+      try {
+        const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+        const data = await res.json();
 
-      if (data.url && onUpload) {
-        onUpload(data);
+        if (data.url && onUpload) {
+          onUpload(data);
+        } else if (data.error) {
+          alert(`Upload failed: ${data.error}`);
+        }
+      } catch {
+        alert(`Failed to upload "${file.name}". Please try again.`);
       }
     }
 
+    setStatus("");
     setUploading(false);
     if (inputRef.current) inputRef.current.value = "";
   };
@@ -49,9 +118,9 @@ export default function ImageUploader({ folder = "general", onUpload }) {
       <HiOutlineCloudUpload size={32} className={`${uploading ? "animate-bounce" : ""} text-zinc-400`} />
       <div>
         <p className="text-sm font-medium text-zinc-700">
-          {uploading ? "Uploading..." : "Click or drag images here"}
+          {uploading ? status || "Uploading..." : "Click or drag images here"}
         </p>
-        <p className="mt-1 text-xs text-zinc-400">PNG, JPG, WEBP up to 10MB</p>
+        <p className="mt-1 text-xs text-zinc-400">PNG, JPG, WEBP — auto-compressed for fast upload</p>
       </div>
       <input
         ref={inputRef}

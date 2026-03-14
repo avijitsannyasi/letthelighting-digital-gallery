@@ -72,9 +72,44 @@ export default function GalleryManagePage() {
     replaceRef.current?.click();
   };
 
+  const compressFile = (file) => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+        const maxDim = 3000;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        const maxBytes = 3.8 * 1024 * 1024;
+        let quality = 0.85;
+        const tryCompress = () => {
+          canvas.toBlob((blob) => {
+            if (blob.size > maxBytes && quality > 0.3) { quality -= 0.1; tryCompress(); }
+            else resolve(new File([blob], file.name, { type: "image/jpeg" }));
+          }, "image/jpeg", quality);
+        };
+        tryCompress();
+      };
+      img.src = url;
+    });
+  };
+
   const handleReplaceFile = async (e) => {
-    const file = e.target.files?.[0];
+    let file = e.target.files?.[0];
     if (!file || !replacingId) return;
+
+    if (file.size > 4 * 1024 * 1024) {
+      file = await compressFile(file);
+    }
 
     const formData = new FormData();
     formData.append("file", file);
