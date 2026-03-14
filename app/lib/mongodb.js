@@ -1,32 +1,31 @@
 import { MongoClient } from "mongodb";
-import dns from "dns";
-
-// Fix for routers/networks where SRV lookups fail with default DNS
-dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 
 const uri = process.env.MONGODB_URI;
 
-let client;
 let clientPromise;
 
-if (!uri) {
-  throw new Error("Please add MONGODB_URI to .env.local");
-}
+function getClientPromise() {
+  if (clientPromise) return clientPromise;
 
-if (process.env.NODE_ENV === "development") {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri);
-    global._mongoClientPromise = client.connect();
+  if (!uri) {
+    throw new Error("Please add MONGODB_URI to .env.local");
   }
-  clientPromise = global._mongoClientPromise;
-} else {
-  client = new MongoClient(uri);
-  clientPromise = client.connect();
+
+  if (process.env.NODE_ENV === "development") {
+    if (!global._mongoClientPromise) {
+      global._mongoClientPromise = new MongoClient(uri).connect();
+    }
+    clientPromise = global._mongoClientPromise;
+  } else {
+    clientPromise = new MongoClient(uri).connect();
+  }
+
+  return clientPromise;
 }
 
-export default clientPromise;
+export default getClientPromise;
 
 export async function getDb() {
-  const client = await clientPromise;
+  const client = await getClientPromise();
   return client.db("photography-gallery");
 }
