@@ -1,9 +1,10 @@
 import { MongoClient } from "mongodb";
 
-let clientPromise;
+// Cache the connection promise across hot reloads (dev) and warm invocations (prod).
+const cache = global._mongoClientCache || (global._mongoClientCache = { promise: null });
 
 function getClientPromise() {
-  if (clientPromise) return clientPromise;
+  if (cache.promise) return cache.promise;
 
   const uri = process.env.MONGODB_URI;
 
@@ -11,16 +12,13 @@ function getClientPromise() {
     throw new Error("Please add MONGODB_URI to .env.local");
   }
 
-  if (process.env.NODE_ENV === "development") {
-    if (!global._mongoClientPromise) {
-      global._mongoClientPromise = new MongoClient(uri).connect();
-    }
-    clientPromise = global._mongoClientPromise;
-  } else {
-    clientPromise = new MongoClient(uri).connect();
-  }
+  cache.promise = new MongoClient(uri).connect().catch((err) => {
+    // Drop the failed promise so the next request retries instead of reusing the rejection.
+    cache.promise = null;
+    throw err;
+  });
 
-  return clientPromise;
+  return cache.promise;
 }
 
 export default getClientPromise;
